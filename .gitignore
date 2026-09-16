@@ -1,0 +1,12 @@
+node_modules
+out
+dist
+data
+*.log
+.DS_Store
+# 忽略打包产物
+release/
+dist/
+dist-electron/
+out/
+build/

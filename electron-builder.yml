@@ -1,0 +1,20 @@
+appId: com.photomind.app
+productName: PhotoMind
+directories:
+  output: dist
+files:
+  - out/**/*
+  - package.json
+asarUnpack:
+  - node_modules/sharp/**
+  - node_modules/@img/**
+win:
+  target:
+    - nsis
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+electronDownload:
+  mirror: https://npmmirror.com/mirrors/electron/
