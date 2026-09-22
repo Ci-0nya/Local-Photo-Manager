@@ -1,18 +1,18 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { CHANNELS } from '../shared/ipc'
-import type { PhotoMindApi } from '../shared/ipc'
+import type { PhotoMindApi, SaveDirProgress } from '../shared/ipc'
 
 const api: PhotoMindApi = {
-  importFolder: () => ipcRenderer.invoke(CHANNELS.importFolder),
-  getLibrary: () => ipcRenderer.invoke(CHANNELS.getLibrary),
-  createCategory: (name, color) => ipcRenderer.invoke(CHANNELS.createCategory, name, color),
-  renameCategory: (id, name) => ipcRenderer.invoke(CHANNELS.renameCategory, id, name),
-  deleteCategory: (id) => ipcRenderer.invoke(CHANNELS.deleteCategory, id),
-  setCategoryColor: (id, color) => ipcRenderer.invoke(CHANNELS.setCategoryColor, id, color),
-  moveCategory: (id, direction) => ipcRenderer.invoke(CHANNELS.moveCategory, id, direction),
-  addPhotoCategory: (photoId, categoryId) => ipcRenderer.invoke(CHANNELS.addPhotoCategory, photoId, categoryId),
-  removePhotoCategory: (photoId, categoryId) =>
-    ipcRenderer.invoke(CHANNELS.removePhotoCategory, photoId, categoryId),
+  pickImages: () => ipcRenderer.invoke(CHANNELS.pickImages),
+  pickFolderAndImport: () => ipcRenderer.invoke(CHANNELS.pickFolderAndImport),
+  importPhotos: (paths) => ipcRenderer.invoke(CHANNELS.importPhotos, paths),
+  getPhotos: () => ipcRenderer.invoke(CHANNELS.getPhotos),
+  markEdited: (id) => ipcRenderer.invoke(CHANNELS.markEdited, id),
+  setPhotoTags: (id, tags) => ipcRenderer.invoke(CHANNELS.setPhotoTags, id, tags),
+  setRating: (id, rating) => ipcRenderer.invoke(CHANNELS.setRating, id, rating),
+  setPhotoName: (id, name) => ipcRenderer.invoke(CHANNELS.setPhotoName, id, name),
+  deletePhotos: (ids, deleteFiles) => ipcRenderer.invoke(CHANNELS.deletePhotos, ids, deleteFiles),
+  readExif: (photoId) => ipcRenderer.invoke(CHANNELS.readExif, photoId),
   getCanvasNodes: () => ipcRenderer.invoke(CHANNELS.getCanvasNodes),
   createCanvasNode: (photoId, x, y, width, height, title) =>
     ipcRenderer.invoke(CHANNELS.createCanvasNode, photoId, x, y, width, height, title),
@@ -23,10 +23,20 @@ const api: PhotoMindApi = {
     ipcRenderer.invoke(CHANNELS.createCanvasEdge, sourceNodeId, targetNodeId, label),
   updateCanvasEdge: (id, patch) => ipcRenderer.invoke(CHANNELS.updateCanvasEdge, id, patch),
   deleteCanvasEdge: (id) => ipcRenderer.invoke(CHANNELS.deleteCanvasEdge, id),
-  listAlbums: () => ipcRenderer.invoke(CHANNELS.listAlbums),
-  getAlbumPhotos: (albumKey) => ipcRenderer.invoke(CHANNELS.getAlbumPhotos, albumKey),
-  getSetting: (key) => ipcRenderer.invoke(CHANNELS.getSetting, key),
-  setSetting: (key, value) => ipcRenderer.invoke(CHANNELS.setSetting, key, value)
+  clearCanvas: () => ipcRenderer.invoke(CHANNELS.clearCanvas),
+  getSaveDir: () => ipcRenderer.invoke(CHANNELS.getSaveDir),
+  pickSaveDir: () => ipcRenderer.invoke(CHANNELS.pickSaveDir),
+  validateSaveDir: (path) => ipcRenderer.invoke(CHANNELS.validateSaveDir, path),
+  migrateSaveDir: (path) => ipcRenderer.invoke(CHANNELS.migrateSaveDir, path),
+  onSaveDirProgress: (cb) => {
+    const handler = (_e: unknown, p: SaveDirProgress) => cb(p)
+    ipcRenderer.on(CHANNELS.saveDirProgress, handler)
+    return () => ipcRenderer.removeListener(CHANNELS.saveDirProgress, handler)
+  },
+  saveMindLibrary: (name, snapshot) => ipcRenderer.invoke(CHANNELS.saveMindLibrary, name, snapshot),
+  listMindLibrary: () => ipcRenderer.invoke(CHANNELS.listMindLibrary),
+  deleteMindLibrary: (ids) => ipcRenderer.invoke(CHANNELS.deleteMindLibrary, ids)
 }
 
 contextBridge.exposeInMainWorld('api', api)
+contextBridge.exposeInMainWorld('getPathForFile', (file: File) => webUtils.getPathForFile(file))

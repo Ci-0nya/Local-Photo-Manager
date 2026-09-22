@@ -98,3 +98,8 @@ export function updateMapEdge(db: DatabaseSync, id: number, patch: MapEdgePatch)
 export function deleteMapEdge(db: DatabaseSync, id: number): void {
   db.prepare('DELETE FROM map_edges WHERE id = ?').run(id)
 }
+
+export function clearMapContents(db: DatabaseSync, mapId: number): void {
+  db.prepare('DELETE FROM map_edges WHERE map_id = ?').run(mapId)
+  db.prepare('DELETE FROM map_nodes WHERE map_id = ?').run(mapId)
+}

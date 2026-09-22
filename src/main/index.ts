@@ -5,17 +5,20 @@ import { createDatabase } from './db'
 import * as repo from './photoRepo'
 import { registerIpcHandlers } from './ipc'
 import { registerSchemes, registerMediaProtocol } from './protocol'
+import { initSettings } from './settings'
 
 registerSchemes()
 
 // 数据统一存放在项目根目录下的 data 子目录，避免写入 C 盘 AppData。
-// 打包（生产）时则放在可执行文件所在目录的 data 子目录，保持便携。
-function resolveDataDir(): string {
-  const base = app.isPackaged ? dirname(process.execPath) : app.getAppPath()
-  return join(base, 'data')
+// 打包（生产）时则放在可执行文件所在目录，保持便携。
+function resolveRootDir(): string {
+  return app.isPackaged ? dirname(process.execPath) : app.getAppPath()
 }
 
-const dataDir = resolveDataDir()
+const rootDir = resolveRootDir()
+const dataDir = join(rootDir, 'data')
+const defaultSaveDir = join(rootDir, 'savepicture')
+const kushotDir = join(rootDir, 'kushot')
 app.setPath('userData', dataDir)
 app.setPath('sessionData', join(dataDir, 'session'))
 app.setPath('logs', join(dataDir, 'logs'))
@@ -57,10 +60,14 @@ app.whenReady().then(() => {
   mkdirSync(app.getPath('logs'), { recursive: true })
   mkdirSync(app.getPath('temp'), { recursive: true })
 
+  // 读配置并初始化 savepicture 目录（可被用户在「设置」页自定义，配置存于 data/settings.json）
+  initSettings(join(dataDir, 'settings.json'), defaultSaveDir)
+  mkdirSync(kushotDir, { recursive: true })
+
   const db = createDatabase(join(userData, 'photomind.db'))
 
-  registerIpcHandlers({ db })
-  registerMediaProtocol({ db, thumbDir })
+  registerIpcHandlers({ db, thumbDir, kushotDir })
+  registerMediaProtocol({ db, thumbDir, kushotDir })
 
   // 无界面启动自检（用于 CI / 冒烟测试）：初始化后打印结果并退出
   if (process.env['PHOTOMIND_SMOKE'] === '1') {

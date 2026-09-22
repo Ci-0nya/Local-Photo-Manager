@@ -2,6 +2,8 @@ node_modules
 out
 dist
 data
+savepicture
+kushot
 *.log
 .DS_Store
 # 忽略打包产物

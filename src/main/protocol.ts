@@ -1,6 +1,6 @@
 import { protocol } from 'electron'
 import { readFile } from 'fs/promises'
-import { extname } from 'path'
+import { extname, basename, join } from 'path'
 import type { DatabaseSync } from 'node:sqlite'
 import * as repo from './photoRepo'
 import { ensureThumbnail } from './thumbnail'
@@ -23,11 +23,21 @@ export function registerSchemes(): void {
   ])
 }
 
-// photomind://thumb/{id} -> 缩略图；photomind://photo/{id} -> 原图
-export function registerMediaProtocol(deps: { db: DatabaseSync; thumbDir: string }): void {
+// photomind://thumb/{id} -> 缩略图；photomind://photo/{id} -> 原图；photomind://lib/{imageName} -> 联想库画布图片
+export function registerMediaProtocol(deps: { db: DatabaseSync; thumbDir: string; kushotDir: string }): void {
   protocol.handle('photomind', async (request) => {
     try {
       const url = new URL(request.url)
+
+      // 联想库保存的画布图片
+      if (url.hostname === 'lib') {
+        const name = basename(decodeURIComponent(url.pathname.replace(/^\//, '')))
+        const data = await readFile(join(deps.kushotDir, name))
+        return new Response(new Uint8Array(data), {
+          headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-cache' }
+        })
+      }
+
       const id = Number(url.pathname.replace(/^\//, ''))
       if (!Number.isInteger(id) || id <= 0) {
         return new Response('Bad request', { status: 400 })

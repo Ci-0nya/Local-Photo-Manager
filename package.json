@@ -1,6 +1,6 @@
 {
   "name": "photomind",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "PhotoMind - 本地离线照片管理与联想画布",
   "main": "./out/main/index.js",
   "author": "PhotoMind",
@@ -10,9 +10,10 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit",
-    "build:win": "electron-vite build && electron-builder --win"
+    "build:win": "electron-vite build && electron-builder --win --publish never"
   },
   "dependencies": {
+    "exifr": "^7.1.3",
     "sharp": "^0.35.4"
   },
   "devDependencies": {

@@ -1,7 +1,8 @@
 appId: com.photomind.app
-productName: PhotoMind
+productName: photomind
+artifactName: photomind v0.2.0.exe
 directories:
-  output: dist
+  output: release
 files:
   - out/**/*
   - package.json
