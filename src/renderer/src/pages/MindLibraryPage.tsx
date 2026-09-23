@@ -7,7 +7,7 @@ import {
   Position,
   BaseEdge,
   EdgeLabelRenderer,
-  getSmoothStepPath,
+  getBezierPath,
   type Node,
   type Edge,
   type NodeProps,
@@ -25,7 +25,7 @@ type ViewEdge = Edge<ViewEdgeData>
 
 function ViewNodeComponent({ data }: NodeProps<ViewNode>) {
   return (
-    <div className="relative h-full w-full rounded-lg border-2 border-neutral-400 bg-white">
+    <div className="relative h-full w-full rounded-lg border-2 border-neutral-400 glass">
       <Handle
         type="target"
         position={Position.Left}
@@ -55,7 +55,7 @@ function ViewNodeComponent({ data }: NodeProps<ViewNode>) {
 
 function ViewEdgeComponent(props: EdgeProps<ViewEdge>) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = props
-  const [path, labelX, labelY] = getSmoothStepPath({
+  const [path, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
     sourcePosition,
@@ -65,7 +65,7 @@ function ViewEdgeComponent(props: EdgeProps<ViewEdge>) {
   })
   return (
     <>
-      <BaseEdge id={id} path={path} style={{ stroke: '#94a3b8', strokeWidth: 1.5 }} />
+      <BaseEdge id={id} path={path} style={{ stroke: '#64748b', strokeWidth: 2.5 }} />
       <EdgeLabelRenderer>
         {data?.label ? (
           <div
@@ -74,7 +74,7 @@ function ViewEdgeComponent(props: EdgeProps<ViewEdge>) {
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               pointerEvents: 'none'
             }}
-            className="rounded-full border border-neutral-300 bg-white px-1.5 py-0.5 text-xs shadow-sm"
+            className="rounded-full border border-outline glass px-1.5 py-0.5 text-xs shadow-sm"
           >
             {data.label}
           </div>
@@ -139,19 +139,19 @@ function MindCanvasViewer({ item, onClose }: { item: MindLibraryItem; onClose: (
         </div>
       )}
       <div
-        className="flex h-[85vh] w-[85vw] flex-col overflow-hidden rounded-lg bg-white shadow-xl"
+        className="flex h-[85vh] w-[85vw] flex-col overflow-hidden rounded-lg glass shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-outline px-4 py-3">
           <div className="min-w-0">
-            <h2 className="truncate text-base font-semibold text-neutral-800">{item.name}</h2>
-            <p className="text-xs text-neutral-400">
+            <h2 className="truncate text-base font-semibold text-content">{item.name}</h2>
+            <p className="text-xs text-content-subtle">
               {item.snapshot.nodes.length} 个元素 · {item.snapshot.edges.length} 条连线 · {new Date(item.createdAt).toLocaleString('zh-CN')}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xl text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xl text-content-muted hover:bg-surface-hover hover:text-content"
             aria-label="关闭"
           >
             ×
@@ -194,25 +194,25 @@ function LibraryImageViewer({ item, onClose }: { item: MindLibraryItem; onClose:
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="flex h-[85vh] w-[85vw] flex-col overflow-hidden rounded-lg bg-white shadow-xl"
+        className="flex h-[85vh] w-[85vw] flex-col overflow-hidden rounded-lg glass shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-outline px-4 py-3">
           <div className="min-w-0">
-            <h2 className="truncate text-base font-semibold text-neutral-800">{item.name}</h2>
-            <p className="text-xs text-neutral-400">画布图片</p>
+            <h2 className="truncate text-base font-semibold text-content">{item.name}</h2>
+            <p className="text-xs text-content-subtle">画布图片</p>
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xl text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xl text-content-muted hover:bg-surface-hover hover:text-content"
             aria-label="关闭"
           >
             ×
           </button>
         </div>
-        <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-neutral-100 p-4">
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-surface-hover p-4">
           {failed ? (
-            <p className="text-sm text-neutral-400">图片文件不存在或已被移动。</p>
+            <p className="text-sm text-content-subtle">图片文件不存在或已被移动。</p>
           ) : (
             <img
               src={`photomind://lib/${encodeURIComponent(item.imageName ?? '')}`}
@@ -257,8 +257,8 @@ function LibraryCard({
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') handleClick()
       }}
-      className={`group relative cursor-pointer rounded-lg border bg-white p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
-        selected ? 'border-blue-500 ring-2 ring-blue-500' : 'border-neutral-200 hover:border-blue-400'
+      className={`group relative cursor-pointer rounded-lg border glass p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
+        selected ? 'border-blue-500 ring-2 ring-blue-500' : 'border-outline hover:border-blue-400'
       }`}
     >
       {selectMode && (
@@ -270,9 +270,9 @@ function LibraryCard({
           ✓
         </div>
       )}
-      <div className="mb-1 truncate pr-8 text-sm font-medium text-neutral-800">{item.name}</div>
-      <div className="text-xs text-neutral-400">{new Date(item.createdAt).toLocaleString('zh-CN')}</div>
-      <div className="mt-3 text-xs text-neutral-500">
+      <div className="mb-1 truncate pr-8 text-sm font-medium text-content">{item.name}</div>
+      <div className="text-xs text-content-subtle">{new Date(item.createdAt).toLocaleString('zh-CN')}</div>
+      <div className="mt-3 text-xs text-content-muted">
         {item.snapshot.nodes.length} 个元素 · {item.snapshot.edges.length} 条连线
       </div>
 
@@ -284,7 +284,7 @@ function LibraryCard({
         disabled={!item.imageName}
         title={item.imageName ? '查看画布图片' : '无对应图片文件'}
         aria-label="查看画布图片"
-        className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-md border border-neutral-300 bg-white text-neutral-600 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
+        className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-md border border-outline glass text-content-muted transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40"
       >
         <ImageIcon />
       </button>
@@ -374,11 +374,11 @@ export default function MindLibraryPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 bg-white px-5 py-3">
+      <div className="flex shrink-0 items-center justify-between border-b border-outline glass px-5 py-3">
         <h1 className="text-lg font-semibold">联想库</h1>
         <button
           onClick={selectMode ? toggleSelectAll : enterSelect}
-          className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-700 hover:border-neutral-400"
+          className="rounded-md border border-outline glass px-3 py-2 text-sm text-content hover:border-neutral-400"
         >
           {selectMode ? (allSelected ? '全不选' : '全选') : '多选'}
         </button>
@@ -386,9 +386,9 @@ export default function MindLibraryPage() {
 
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
         {loading ? (
-          <p className="text-sm text-neutral-400">加载中…</p>
+          <p className="text-sm text-content-subtle">加载中…</p>
         ) : items.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-neutral-300 py-16 text-center text-sm text-neutral-400">
+          <div className="rounded-lg border border-dashed border-outline py-16 text-center text-sm text-content-muted">
             暂无保存的联想画布
             <br />
             在「联想画布」页点击右上角「保存到库」即可将画布保存到这里。
@@ -415,8 +415,8 @@ export default function MindLibraryPage() {
       {imageViewing && <LibraryImageViewer item={imageViewing} onClose={() => setImageViewing(null)} />}
 
       {selectMode && (
-        <div className="fixed bottom-6 right-6 z-30 flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 shadow-lg">
-          <span className="text-sm text-neutral-500">已选 {selected.size} 个</span>
+        <div className="fixed bottom-6 right-6 z-30 flex items-center gap-3 rounded-xl border border-outline glass px-4 py-3 shadow-lg">
+          <span className="text-sm text-content-muted">已选 {selected.size} 个</span>
           <button
             onClick={batchDelete}
             disabled={selected.size === 0}
@@ -426,7 +426,7 @@ export default function MindLibraryPage() {
           </button>
           <button
             onClick={exitSelect}
-            className="rounded-md border border-neutral-300 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100"
+            className="rounded-md border border-outline px-4 py-2 text-sm text-content-muted hover:bg-surface-hover"
           >
             取消多选
           </button>
@@ -444,12 +444,12 @@ export default function MindLibraryPage() {
             }}
           />
           <div
-            className="fixed z-50 w-28 overflow-hidden rounded-md border border-neutral-200 bg-white py-1 shadow-lg"
+            className="fixed z-50 w-28 overflow-hidden rounded-md border border-outline glass py-1 shadow-lg"
             style={{ left: ctxMenu.x, top: ctxMenu.y }}
           >
             <button
               onClick={() => handleDelete(ctxMenu.item)}
-              className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-neutral-100"
+              className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-surface-hover"
             >
               删除
             </button>
@@ -459,13 +459,13 @@ export default function MindLibraryPage() {
 
       {deleteDialog && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={cancelDelete}>
-          <div className="w-[380px] max-w-[90vw] rounded-xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-2 text-base font-semibold text-neutral-800">确认删除</h2>
-            <p className="mb-4 text-sm text-neutral-600">即将删除 {deleteDialog.label}，此操作不可恢复。</p>
+          <div className="w-[380px] max-w-[90vw] rounded-xl glass p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-2 text-base font-semibold text-content">确认删除</h2>
+            <p className="mb-4 text-sm text-content-muted">即将删除 {deleteDialog.label}，此操作不可恢复。</p>
             <div className="flex justify-end gap-2">
               <button
                 onClick={cancelDelete}
-                className="rounded-md border border-neutral-300 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100"
+                className="rounded-md border border-outline px-4 py-2 text-sm text-content-muted hover:bg-surface-hover"
               >
                 取消
               </button>

@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLibraryStore } from './store/library'
+import { useBackgroundStore } from './store/background'
 import LibraryPage from './pages/LibraryPage'
 import CanvasPage from './pages/CanvasPage'
 import { EditorPage } from './pages/EditorPage'
@@ -71,7 +72,7 @@ function NavButton({
       title={label}
       className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
         expanded ? 'justify-start' : 'justify-center'
-      } ${active ? 'bg-blue-50 font-medium text-blue-600' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-800'}`}
+      } ${active ? 'bg-blue-50 font-medium text-blue-600' : 'text-content-muted hover:bg-surface-hover hover:text-content'}`}
     >
       <span className="shrink-0">{icon}</span>
       {expanded && <span className="whitespace-nowrap">{label}</span>}
@@ -81,6 +82,10 @@ function NavButton({
 
 export default function App() {
   const editor = useLibraryStore((s) => s.editor)
+  const hasBg = useBackgroundStore((s) => s.hasImage)
+  const bgOpacity = useBackgroundStore((s) => s.opacity)
+  const bgRev = useBackgroundStore((s) => s.rev)
+  const loadBackground = useBackgroundStore((s) => s.load)
   const [tab, setTab] = useState<Tab>('library')
   const [expanded, setExpanded] = useState(() => {
     try {
@@ -102,15 +107,32 @@ export default function App() {
     })
   }
 
+  useEffect(() => {
+    loadBackground()
+  }, [loadBackground])
+
   return (
-    <div className="flex h-full bg-neutral-50 text-neutral-900">
+    <div className="relative flex h-full bg-canvas text-content">
+      {hasBg && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: `url('photomind://bg?t=${bgRev}')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            opacity: bgOpacity
+          }}
+        />
+      )}
       {/* 左侧导航栏 */}
       <aside
-        className={`flex shrink-0 flex-col border-r border-neutral-200 bg-white transition-[width] duration-300 ${
+        className={`relative z-10 flex shrink-0 flex-col border-r border-outline glass transition-[width] duration-300 ${
           expanded ? 'w-44' : 'w-14'
         }`}
       >
-        <div className="flex h-14 shrink-0 items-center justify-center gap-2 border-b border-neutral-200 px-2">
+        <div className="flex h-14 shrink-0 items-center justify-center gap-2 border-b border-outline px-2">
           <button
             onClick={toggleSidebar}
             title={expanded ? '收起侧边栏' : '展开侧边栏'}
@@ -132,7 +154,7 @@ export default function App() {
         </nav>
       </aside>
 
-      <main className="min-h-0 flex-1">
+      <main className="relative z-10 min-h-0 flex-1">
         {tab === 'library' ? (
           <LibraryPage />
         ) : tab === 'canvas' ? (

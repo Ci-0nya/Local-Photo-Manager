@@ -27,6 +27,11 @@ export interface SaveDirMigration {
   errors: string[]
 }
 
+export interface BackgroundSettings {
+  image: string | null
+  opacity: number
+}
+
 export const CHANNELS = {
   pickImages: 'photos:pick',
   pickFolderAndImport: 'photos:pick-folder-import',
@@ -54,7 +59,12 @@ export const CHANNELS = {
   saveMindLibrary: 'library:save',
   listMindLibrary: 'library:list',
   deleteMindLibrary: 'library:delete',
-  clearCanvas: 'canvas:clear'
+  clearCanvas: 'canvas:clear',
+  getBackground: 'settings:get-background',
+  pickBackground: 'settings:pick-background',
+  applyBackground: 'settings:apply-background',
+  setBackgroundOpacity: 'settings:set-background-opacity',
+  clearBackground: 'settings:clear-background'
 } as const
 
 // 渲染进程通过 window.api 访问的接口
@@ -93,4 +103,9 @@ export interface PhotoMindApi {
   listMindLibrary(): Promise<MindLibraryItem[]>
   deleteMindLibrary(ids: number[]): Promise<void>
   clearCanvas(): Promise<void>
+  getBackground(): Promise<BackgroundSettings>
+  pickBackground(): Promise<string | null>
+  applyBackground(path: string): Promise<BackgroundSettings>
+  setBackgroundOpacity(opacity: number): Promise<void>
+  clearBackground(): Promise<void>
 }

@@ -1,6 +1,6 @@
 {
   "name": "photomind",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "PhotoMind - 本地离线照片管理与联想画布",
   "main": "./out/main/index.js",
   "author": "PhotoMind",

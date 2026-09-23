@@ -35,7 +35,12 @@ const api: PhotoMindApi = {
   },
   saveMindLibrary: (name, snapshot) => ipcRenderer.invoke(CHANNELS.saveMindLibrary, name, snapshot),
   listMindLibrary: () => ipcRenderer.invoke(CHANNELS.listMindLibrary),
-  deleteMindLibrary: (ids) => ipcRenderer.invoke(CHANNELS.deleteMindLibrary, ids)
+  deleteMindLibrary: (ids) => ipcRenderer.invoke(CHANNELS.deleteMindLibrary, ids),
+  getBackground: () => ipcRenderer.invoke(CHANNELS.getBackground),
+  pickBackground: () => ipcRenderer.invoke(CHANNELS.pickBackground),
+  applyBackground: (path) => ipcRenderer.invoke(CHANNELS.applyBackground, path),
+  setBackgroundOpacity: (opacity) => ipcRenderer.invoke(CHANNELS.setBackgroundOpacity, opacity),
+  clearBackground: () => ipcRenderer.invoke(CHANNELS.clearBackground)
 }
 
 contextBridge.exposeInMainWorld('api', api)

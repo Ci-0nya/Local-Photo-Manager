@@ -13,6 +13,27 @@ body {
   font-family: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
+/* —— 主题色（白 / 黑 / 粉） —— */
+:root {
+  --app-bg: 249 250 251;
+  --app-surface: 255 255 255;
+  --app-hover: 243 244 246;
+  --app-border: 229 231 235;
+  --app-text: 17 24 39;
+  --app-muted: 75 85 99;
+  --app-subtle: 156 163 175;
+}
+
+[data-theme='black'] {
+  --app-bg: 17 17 17;
+  --app-surface: 38 38 38;
+  --app-hover: 51 51 51;
+  --app-border: 64 64 64;
+  --app-text: 245 245 245;
+  --app-muted: 163 163 163;
+  --app-subtle: 115 115 115;
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -24,4 +45,28 @@ body {
 
 .animate-fade-in {
   animation: fade-in 0.25s ease;
+}
+
+/* 半透明表面：仅半透明背景（无模糊），用于卡片 / 导航栏 / 菜单 / 面板 */
+.glass {
+  background-color: rgb(var(--app-surface) / 0.8);
+}
+
+/* 画布左下角控制按钮随主题适配（黑色主题下避免白色底板冲突） */
+[data-theme='black'] .react-flow__controls-button {
+  background: rgb(var(--app-surface) / 0.9);
+  color: rgb(var(--app-text) / 1);
+  border-color: rgb(var(--app-border) / 1);
+}
+[data-theme='black'] .react-flow__controls-button:hover {
+  background: rgb(var(--app-hover) / 1);
+}
+
+/* 主题切换期间的平滑过渡（由 store 在切换时临时加在根元素上） */
+.theming,
+.theming *,
+.theming *::before,
+.theming *::after {
+  transition: background-color 0.35s ease-in-out, color 0.35s ease-in-out, border-color 0.35s ease-in-out,
+    fill 0.35s ease-in-out, stroke 0.35s ease-in-out !important;
 }

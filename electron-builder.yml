@@ -1,6 +1,6 @@
 appId: com.photomind.app
 productName: photomind
-artifactName: photomind v0.2.0.exe
+artifactName: photomind v0.2.1.exe
 directories:
   output: release
 files:

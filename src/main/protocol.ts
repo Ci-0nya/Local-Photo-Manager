@@ -4,6 +4,7 @@ import { extname, basename, join } from 'path'
 import type { DatabaseSync } from 'node:sqlite'
 import * as repo from './photoRepo'
 import { ensureThumbnail } from './thumbnail'
+import { getBackgroundImagePath } from './settings'
 
 const MIME: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -28,6 +29,17 @@ export function registerMediaProtocol(deps: { db: DatabaseSync; thumbDir: string
   protocol.handle('photomind', async (request) => {
     try {
       const url = new URL(request.url)
+
+      // 自定义背景图
+      if (url.hostname === 'bg') {
+        const path = getBackgroundImagePath()
+        if (!path) return new Response('Not found', { status: 404 })
+        const data = await readFile(path)
+        const mime = MIME[extname(path).toLowerCase()] ?? 'application/octet-stream'
+        return new Response(new Uint8Array(data), {
+          headers: { 'Content-Type': mime, 'Cache-Control': 'no-cache' }
+        })
+      }
 
       // 联想库保存的画布图片
       if (url.hostname === 'lib') {

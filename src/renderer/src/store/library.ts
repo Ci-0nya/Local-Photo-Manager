@@ -30,6 +30,14 @@ interface LibraryState {
   deletePhotos: (ids: number[], deleteFiles: boolean) => Promise<{ fileErrors: number }>
 }
 
+// 同步更新编辑队列中对应照片的字段，保证「上一张/下一张」回看时已编辑信息不丢失
+function patchEditorPhoto(editor: EditingState, id: number, patch: Partial<Photo>): EditingState {
+  return {
+    ...editor,
+    queue: editor.queue.map((p) => (p.id === id ? { ...p, ...patch } : p))
+  }
+}
+
 export const useLibraryStore = create<LibraryState>((set, get) => {
   const refresh = async () => set({ photos: await window.api.getPhotos() })
 
@@ -124,16 +132,19 @@ export const useLibraryStore = create<LibraryState>((set, get) => {
     setPhotoTags: async (id, tags) => {
       await window.api.setPhotoTags(id, tags)
       await refresh()
+      set((s) => (s.editor ? { editor: patchEditorPhoto(s.editor, id, { tags }) } : {}))
     },
 
     setRating: async (id, rating) => {
       await window.api.setRating(id, rating)
       await refresh()
+      set((s) => (s.editor ? { editor: patchEditorPhoto(s.editor, id, { rating }) } : {}))
     },
 
     setPhotoName: async (id, name) => {
       await window.api.setPhotoName(id, name)
       await refresh()
+      set((s) => (s.editor ? { editor: patchEditorPhoto(s.editor, id, { name }) } : {}))
     },
 
     deletePhotos: async (ids, deleteFiles) => {

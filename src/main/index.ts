@@ -19,6 +19,7 @@ const rootDir = resolveRootDir()
 const dataDir = join(rootDir, 'data')
 const defaultSaveDir = join(rootDir, 'savepicture')
 const kushotDir = join(rootDir, 'kushot')
+const backgroundDir = join(dataDir, 'backgrounds')
 app.setPath('userData', dataDir)
 app.setPath('sessionData', join(dataDir, 'session'))
 app.setPath('logs', join(dataDir, 'logs'))
@@ -63,10 +64,11 @@ app.whenReady().then(() => {
   // 读配置并初始化 savepicture 目录（可被用户在「设置」页自定义，配置存于 data/settings.json）
   initSettings(join(dataDir, 'settings.json'), defaultSaveDir)
   mkdirSync(kushotDir, { recursive: true })
+  mkdirSync(backgroundDir, { recursive: true })
 
   const db = createDatabase(join(userData, 'photomind.db'))
 
-  registerIpcHandlers({ db, thumbDir, kushotDir })
+  registerIpcHandlers({ db, thumbDir, kushotDir, backgroundDir })
   registerMediaProtocol({ db, thumbDir, kushotDir })
 
   // 无界面启动自检（用于 CI / 冒烟测试）：初始化后打印结果并退出

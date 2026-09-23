@@ -1,5 +1,6 @@
 import { useEffect, useState, type DragEvent, type MouseEvent } from 'react'
 import { useLibraryStore } from '../store/library'
+import { useLibraryUi } from '../store/libraryUi'
 import type { Photo } from '@shared/types'
 import { PhotoDetailPage } from './PhotoDetailPage'
 
@@ -40,8 +41,8 @@ function PhotoCard({
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') handleClick()
       }}
-      className={`group relative cursor-pointer overflow-hidden rounded-lg border bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
-        selected ? 'border-blue-500 ring-2 ring-blue-500' : 'border-neutral-200'
+      className={`group relative cursor-pointer overflow-hidden rounded-lg border glass transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
+        selected ? 'border-blue-500 ring-2 ring-blue-500' : 'border-outline'
       }`}
       title={p.filename}
     >
@@ -89,7 +90,7 @@ function PhotoCard({
         </div>
         {p.tags.length > 0 && (
           <div
-            className="truncate text-xs text-neutral-500 transition-opacity duration-300 group-hover:opacity-0"
+            className="truncate text-xs text-content-muted transition-opacity duration-300 group-hover:opacity-0"
             title={p.tags.join(', ')}
           >
             {p.tags.slice(0, 3).map((t) => `#${t}`).join(' ')}
@@ -110,13 +111,19 @@ export default function LibraryPage() {
   const [deleteDialog, setDeleteDialog] = useState<{ ids: number[]; label: string } | null>(null)
   const [deleteFiles, setDeleteFiles] = useState(false)
   const [detail, setDetail] = useState<{ photos: Photo[]; index: number } | null>(null)
-  const [searchInput, setSearchInput] = useState('')
-  const [activeTags, setActiveTags] = useState<string[]>([])
-  const [searchMode, setSearchMode] = useState<'or' | 'and'>('or')
+  const searchInput = useLibraryUi((s) => s.searchInput)
+  const setSearchInput = useLibraryUi((s) => s.setSearchInput)
+  const activeTags = useLibraryUi((s) => s.activeTags)
+  const setActiveTags = useLibraryUi((s) => s.setActiveTags)
+  const searchMode = useLibraryUi((s) => s.searchMode)
+  const setSearchMode = useLibraryUi((s) => s.setSearchMode)
   const [tempOpen, setTempOpen] = useState(false)
-  const [filterRatings, setFilterRatings] = useState<Set<number>>(new Set())
-  const [sortKey, setSortKey] = useState<SortKey>('editedAt')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const filterRatings = useLibraryUi((s) => s.filterRatings)
+  const setFilterRatings = useLibraryUi((s) => s.setFilterRatings)
+  const sortKey = useLibraryUi((s) => s.sortKey)
+  const setSortKey = useLibraryUi((s) => s.setSortKey)
+  const sortDir = useLibraryUi((s) => s.sortDir)
+  const setSortDir = useLibraryUi((s) => s.setSortDir)
   const [sortOpen, setSortOpen] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -152,16 +159,14 @@ export default function LibraryPage() {
   }
 
   const toggleRating = (n: number) => {
-    setFilterRatings((prev) => {
-      const next = new Set(prev)
-      if (next.has(n)) next.delete(n)
-      else next.add(n)
-      return next
-    })
+    const next = new Set(filterRatings)
+    if (next.has(n)) next.delete(n)
+    else next.add(n)
+    setFilterRatings(next)
   }
 
   const selectSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
     else {
       setSortKey(key)
       setSortDir('asc')
@@ -270,15 +275,15 @@ export default function LibraryPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex shrink-0 items-center gap-3 border-b border-neutral-200 bg-white px-5 py-3">
+      <div className="flex shrink-0 items-center gap-3 border-b border-outline glass px-5 py-3">
         <button
           onClick={() => startEditing(unedited)}
           disabled={unedited.length === 0}
           title={`未分类（${unedited.length} 张）`}
-          className="flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-md border-2 border-dashed border-neutral-300 bg-white leading-none text-neutral-600 transition hover:border-blue-400 disabled:cursor-default disabled:opacity-50"
+          className="flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-md border-2 border-dashed border-outline glass leading-none text-content-muted transition hover:border-blue-400 disabled:cursor-default disabled:opacity-50"
         >
-          <span className="text-[9px] font-medium text-neutral-500">未分类</span>
-          <span className="mt-0.5 text-xs font-semibold text-neutral-700">{unedited.length}</span>
+          <span className="text-[9px] font-medium text-content-muted">未分类</span>
+          <span className="mt-0.5 text-xs font-semibold text-content">{unedited.length}</span>
         </button>
         <button
           onClick={() => setImportOpen(true)}
@@ -295,13 +300,13 @@ export default function LibraryPage() {
             导入完毕
           </button>
         )}
-        <span className="text-sm text-neutral-400">单次最多导入 10 张，也可直接拖入照片</span>
+        <span className="text-sm text-content-subtle">单次最多导入 10 张，也可直接拖入照片</span>
       </div>
 
       {loading ? (
-        <div className="flex flex-1 items-center justify-center text-neutral-400">加载中…</div>
+        <div className="flex flex-1 items-center justify-center text-content-subtle">加载中…</div>
       ) : photos.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 text-neutral-400">
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 text-content-subtle">
           <span className="text-lg">暂无照片</span>
           <span className="text-sm">点击「导入照片」或直接拖入照片开始</span>
         </div>
@@ -309,10 +314,10 @@ export default function LibraryPage() {
         <div className="relative min-h-0 flex-1 overflow-y-auto px-5 py-4">
           <div className="mb-6 flex flex-wrap items-center gap-2">
             <button
-              onClick={() => setSearchMode((m) => (m === 'or' ? 'and' : 'or'))}
+              onClick={() => setSearchMode(searchMode === 'or' ? 'and' : 'or')}
               title={searchMode === 'or' ? '并集搜索（任一标签）' : '交集搜索（全部标签）'}
               className={`h-9 min-w-9 rounded-md border px-2 text-sm font-medium transition-colors duration-300 ${
-                searchMode === 'or' ? 'border-neutral-300 bg-white text-black' : 'border-black bg-black text-white'
+                searchMode === 'or' ? 'border-outline bg-white text-black' : 'border-black bg-black text-white'
               }`}
             >
               {searchMode === 'or' ? '阳' : '阴'}
@@ -324,7 +329,7 @@ export default function LibraryPage() {
                 if (e.key === 'Enter') runSearch()
               }}
               placeholder="输入标签搜索，空格分隔多个，如：风景 旅行"
-              className="w-64 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="w-64 rounded-md border border-outline glass px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
             />
             <button
               onClick={runSearch}
@@ -333,7 +338,7 @@ export default function LibraryPage() {
               搜索
             </button>
             {activeTags.length > 0 && (
-              <div className="flex items-center gap-2 text-sm text-neutral-500">
+              <div className="flex items-center gap-2 text-sm text-content-muted">
                 <span>
                   标签「{activeTags.map((t) => `#${t}`).join(' ')}」（{searchMode === 'or' ? '任一' : '全部'}）匹配 {tempPhotos.length}{' '}
                   张，已移入临时相册，首页不再显示
@@ -346,7 +351,7 @@ export default function LibraryPage() {
 
             <div className="ml-auto flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1">
-                <span className="mr-1 text-sm text-neutral-500">筛选</span>
+                <span className="mr-1 text-sm text-content-muted">筛选</span>
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button
                     key={n}
@@ -354,7 +359,7 @@ export default function LibraryPage() {
                     className={`rounded-md border px-2 py-1 text-xs transition-colors ${
                       filterRatings.has(n)
                         ? 'border-yellow-400 bg-yellow-50 text-yellow-600'
-                        : 'border-neutral-300 bg-white text-neutral-500 hover:border-neutral-400'
+                        : 'border-outline glass text-content-muted hover:border-neutral-400'
                     }`}
                   >
                     {n}★
@@ -370,22 +375,22 @@ export default function LibraryPage() {
               <div className="relative">
                 <button
                   onClick={() => setSortOpen((v) => !v)}
-                  className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-700 hover:border-neutral-400"
+                  className="rounded-md border border-outline glass px-3 py-2 text-sm text-content hover:border-neutral-400"
                 >
                   排序 ▾
                 </button>
                 {sortOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setSortOpen(false)} />
-                    <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-md border border-neutral-200 bg-white py-1 shadow-lg">
+                    <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-md border border-outline glass py-1 shadow-lg">
                       {SORT_OPTIONS.map((o) => (
                         <button
                           key={o.key}
                           onClick={() => selectSort(o.key)}
-                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100"
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-content hover:bg-surface-hover"
                         >
                           <span>{o.label}</span>
-                          <span className="text-xs text-neutral-500">
+                          <span className="text-xs text-content-muted">
                             {sortKey === o.key ? (sortDir === 'asc' ? '↑ 正序' : '↓ 倒序') : ''}
                           </span>
                         </button>
@@ -396,14 +401,14 @@ export default function LibraryPage() {
               </div>
               <button
                 onClick={selectMode ? toggleSelectAll : enterSelect}
-                className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-700 hover:border-neutral-400"
+                className="rounded-md border border-outline glass px-3 py-2 text-sm text-content hover:border-neutral-400"
               >
                 {selectMode ? (allSelected ? '全不选' : '全选') : '多选'}
               </button>
             </div>
           </div>
 
-          <div className="mb-2 text-sm font-medium text-neutral-500">已完成（平铺）</div>
+          <div className="mb-2 text-sm font-medium text-content-muted">已完成（平铺）</div>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3">
             {activeTags.length > 0 && (
               <div
@@ -413,7 +418,7 @@ export default function LibraryPage() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') setTempOpen(true)
                 }}
-                className="group relative cursor-pointer overflow-hidden rounded-lg border border-neutral-200 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+                className="group relative cursor-pointer overflow-hidden rounded-lg border border-outline glass transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
                 title={`临时相册 ${activeTags.map((t) => `#${t}`).join(' ')}`}
               >
                 <button
@@ -433,10 +438,10 @@ export default function LibraryPage() {
                   </span>
                 </div>
                 <div className="px-2 py-1.5">
-                  <div className="truncate text-xs text-neutral-600">
+                  <div className="truncate text-xs text-content-muted">
                     {searchMode === 'or' ? '任一标签' : '全部标签'}
                   </div>
-                  <div className="text-xs text-neutral-400">{tempPhotos.length} 张</div>
+                  <div className="text-xs text-content-subtle">{tempPhotos.length} 张</div>
                 </div>
               </div>
             )}
@@ -457,12 +462,12 @@ export default function LibraryPage() {
 
       {importOpen && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40" onClick={() => setImportOpen(false)}>
-          <div className="w-[520px] max-w-[90vw] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-[520px] max-w-[90vw] rounded-xl glass p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-neutral-800">导入照片</h2>
+              <h2 className="text-lg font-semibold text-content">导入照片</h2>
               <button
                 onClick={() => setImportOpen(false)}
-                className="rounded px-2 py-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800"
+                className="rounded px-2 py-1 text-content-muted hover:bg-surface-hover hover:text-content"
                 aria-label="关闭"
               >
                 ×
@@ -477,11 +482,11 @@ export default function LibraryPage() {
               onDragLeave={() => setModalDragOver(false)}
               onDrop={handleModalDrop}
               className={`flex h-48 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed transition-colors ${
-                modalDragOver ? 'border-blue-500 bg-blue-50' : 'border-neutral-300 bg-neutral-50'
+                modalDragOver ? 'border-blue-500 bg-blue-50' : 'border-outline bg-canvas'
               }`}
             >
-              <span className="text-neutral-500">将照片拖放到此区域完成导入</span>
-              <span className="text-xs text-neutral-400">拖放方式单次最多 10 张</span>
+              <span className="text-content-muted">将照片拖放到此区域完成导入</span>
+              <span className="text-xs text-content-subtle">拖放方式单次最多 10 张</span>
             </div>
 
             <div className="mt-4 flex items-center justify-end gap-2">
@@ -493,7 +498,7 @@ export default function LibraryPage() {
               </button>
               <button
                 onClick={() => setImportOpen(false)}
-                className="rounded-md border border-neutral-300 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100"
+                className="rounded-md border border-outline px-4 py-2 text-sm text-content-muted hover:bg-surface-hover"
               >
                 关闭
               </button>
@@ -503,8 +508,8 @@ export default function LibraryPage() {
       )}
 
       {selectMode && (
-        <div className="fixed bottom-6 right-6 z-30 flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 shadow-lg">
-          <span className="text-sm text-neutral-500">已选 {selected.size} 张</span>
+        <div className="fixed bottom-6 right-6 z-30 flex items-center gap-3 rounded-xl border border-outline glass px-4 py-3 shadow-lg">
+          <span className="text-sm text-content-muted">已选 {selected.size} 张</span>
           <button
             onClick={batchDelete}
             disabled={selected.size === 0}
@@ -521,7 +526,7 @@ export default function LibraryPage() {
           </button>
           <button
             onClick={exitSelect}
-            className="rounded-md border border-neutral-300 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100"
+            className="rounded-md border border-outline px-4 py-2 text-sm text-content-muted hover:bg-surface-hover"
           >
             取消多选
           </button>
@@ -562,18 +567,18 @@ export default function LibraryPage() {
             }}
           />
           <div
-            className="fixed z-50 w-28 overflow-hidden rounded-md border border-neutral-200 bg-white py-1 shadow-lg"
+            className="fixed z-50 w-28 overflow-hidden rounded-md border border-outline glass py-1 shadow-lg"
             style={{ left: ctxMenu.x, top: ctxMenu.y }}
           >
             <button
               onClick={() => handleEdit(ctxMenu.photo)}
-              className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100"
+              className="block w-full px-3 py-2 text-left text-sm text-content hover:bg-surface-hover"
             >
               编辑
             </button>
             <button
               onClick={() => handleDelete(ctxMenu.photo)}
-              className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-neutral-100"
+              className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-surface-hover"
             >
               删除
             </button>
@@ -583,10 +588,10 @@ export default function LibraryPage() {
 
       {deleteDialog && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={cancelDelete}>
-          <div className="w-[380px] max-w-[90vw] rounded-xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-2 text-base font-semibold text-neutral-800">确认删除</h2>
-            <p className="mb-4 text-sm text-neutral-600">即将删除 {deleteDialog.label}，此操作会移除照片库中的记录。</p>
-            <label className="mb-4 flex cursor-pointer items-center gap-2 text-sm text-neutral-700">
+          <div className="w-[380px] max-w-[90vw] rounded-xl glass p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-2 text-base font-semibold text-content">确认删除</h2>
+            <p className="mb-4 text-sm text-content-muted">即将删除 {deleteDialog.label}，此操作会移除照片库中的记录。</p>
+            <label className="mb-4 flex cursor-pointer items-center gap-2 text-sm text-content">
               <input
                 type="checkbox"
                 checked={deleteFiles}
@@ -598,7 +603,7 @@ export default function LibraryPage() {
             <div className="flex justify-end gap-2">
               <button
                 onClick={cancelDelete}
-                className="rounded-md border border-neutral-300 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100"
+                className="rounded-md border border-outline px-4 py-2 text-sm text-content-muted hover:bg-surface-hover"
               >
                 取消
               </button>

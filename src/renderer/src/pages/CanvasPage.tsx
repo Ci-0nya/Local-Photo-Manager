@@ -9,7 +9,7 @@ import {
   Position,
   BaseEdge,
   EdgeLabelRenderer,
-  getSmoothStepPath,
+  getBezierPath,
   useNodesState,
   useEdgesState,
   useReactFlow,
@@ -40,7 +40,7 @@ function PhotoNode({ id, data }: NodeProps<PhotoFlowNode>) {
   const name = photos.find((p) => p.id === data.photoId)?.name ?? ''
 
   return (
-    <div className="group relative h-full w-full rounded-lg border-2 border-neutral-400 bg-white">
+    <div className="group relative h-full w-full rounded-lg border-2 border-neutral-400 glass">
       <Handle
         type="target"
         position={Position.Left}
@@ -81,7 +81,7 @@ function PhotoNode({ id, data }: NodeProps<PhotoFlowNode>) {
 
 function LabeledEdge(props: EdgeProps<LabeledFlowEdge>) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected } = props
-  const [path, labelX, labelY] = getSmoothStepPath({
+  const [path, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
     sourcePosition,
@@ -109,7 +109,7 @@ function LabeledEdge(props: EdgeProps<LabeledFlowEdge>) {
 
   return (
     <>
-      <BaseEdge id={id} path={path} style={{ stroke: selected ? '#3b82f6' : '#94a3b8', strokeWidth: selected ? 2 : 1.5 }} />
+      <BaseEdge id={id} path={path} style={{ stroke: selected ? '#3b82f6' : '#64748b', strokeWidth: selected ? 3 : 2.5 }} />
       <EdgeLabelRenderer>
         <div
           style={{
@@ -117,7 +117,7 @@ function LabeledEdge(props: EdgeProps<LabeledFlowEdge>) {
             transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
             pointerEvents: 'all'
           }}
-          className="nodrag nopan flex items-center gap-1 rounded-full border border-neutral-300 bg-white px-1.5 py-0.5 text-xs shadow-sm"
+          className="nodrag nopan flex items-center gap-1 rounded-full border border-outline glass px-1.5 py-0.5 text-xs shadow-sm"
         >
           {editing ? (
             <input
@@ -132,13 +132,13 @@ function LabeledEdge(props: EdgeProps<LabeledFlowEdge>) {
               className="w-24 rounded border border-blue-400 px-1 text-xs focus:outline-none"
             />
           ) : (
-            <button onClick={startEdit} className="max-w-[120px] truncate text-neutral-700" title="点击编辑标签">
+            <button onClick={startEdit} className="max-w-[120px] truncate text-content" title="点击编辑标签">
               {label || '＋ 标签'}
             </button>
           )}
           <button
             onClick={() => deleteElements({ edges: [{ id }] })}
-            className="text-neutral-400 hover:text-red-600"
+            className="text-content-subtle hover:text-red-600"
             aria-label="删除连线"
           >
             ×
@@ -232,13 +232,16 @@ function computeAutoLayout(
   const ids = new Set(nodes.map((n) => n.id))
   const adj = new Map<string, string[]>()
   const indeg = new Map<string, number>()
+  const incoming = new Map<string, string[]>()
   for (const n of nodes) {
     adj.set(n.id, [])
     indeg.set(n.id, 0)
+    incoming.set(n.id, [])
   }
   for (const e of edges) {
     if (e.source === e.target || !ids.has(e.source) || !ids.has(e.target)) continue
     adj.get(e.source)!.push(e.target)
+    incoming.get(e.target)!.push(e.source)
     indeg.set(e.target, (indeg.get(e.target) ?? 0) + 1)
   }
 
@@ -282,8 +285,11 @@ function computeAutoLayout(
   const GAP_X = 120
   const GAP_Y = 100
   const START = 40
+  const nodeById = new Map(nodes.map((n) => [n.id, n]))
   const positions = new Map<string, { x: number; y: number }>()
   const layers = [...columns.keys()].sort((a, b) => a - b)
+
+  // 初始：每层按原 y 顺序自顶向下堆叠
   for (const l of layers) {
     const col = columns.get(l)!.slice().sort((a, b) => a.position.y - b.position.y)
     const x = START + l * (maxW + GAP_X)
@@ -293,6 +299,48 @@ function computeAutoLayout(
       y += nodeH(n) + GAP_Y
     }
   }
+
+  const centerY = (id: string): number => {
+    const p = positions.get(id)!
+    const n = nodeById.get(id)!
+    return p.y + nodeH(n) / 2
+  }
+
+  // 右→左：连接多个子节点的“父节点”垂直居中于其子节点
+  for (const l of [...layers].reverse()) {
+    for (const n of columns.get(l)!) {
+      const targets = adj.get(n.id) ?? []
+      if (targets.length >= 2) {
+        const avg = targets.reduce((s, id) => s + centerY(id), 0) / targets.length
+        positions.get(n.id)!.y = avg - nodeH(n) / 2
+      }
+    }
+  }
+
+  // 左→右：被多个来源连接的节点垂直居中于其来源
+  for (const l of layers) {
+    for (const n of columns.get(l)!) {
+      const sources = incoming.get(n.id) ?? []
+      if (sources.length >= 2) {
+        const avg = sources.reduce((s, id) => s + centerY(id), 0) / sources.length
+        positions.get(n.id)!.y = avg - nodeH(n) / 2
+      }
+    }
+  }
+
+  // 居中后消除同列重叠，保证节点间距，避免连接线穿过图片
+  for (const l of layers) {
+    const col = columns.get(l)!
+      .slice()
+      .sort((a, b) => (positions.get(a.id)?.y ?? 0) - (positions.get(b.id)?.y ?? 0))
+    let prevBottom = -Infinity
+    for (const n of col) {
+      const p = positions.get(n.id)!
+      if (p.y < prevBottom + GAP_Y) p.y = prevBottom + GAP_Y
+      prevBottom = p.y + nodeH(n)
+    }
+  }
+
   return positions
 }
 
@@ -367,15 +415,15 @@ function PhotoSidebar({ placedIds }: { placedIds: Set<number> }) {
   })
 
   return (
-    <aside className="flex w-52 shrink-0 flex-col border-r border-neutral-200 bg-white">
-      <div className="shrink-0 border-b border-neutral-100 px-3 py-2 text-sm font-medium text-neutral-600">照片库</div>
-      <div className="shrink-0 border-b border-neutral-100 px-2 py-2">
+    <aside className="flex w-52 shrink-0 flex-col border-r border-outline glass">
+      <div className="shrink-0 border-b border-outline px-3 py-2 text-sm font-medium text-content-muted">照片库</div>
+      <div className="shrink-0 border-b border-outline px-2 py-2">
         <div className="flex items-center gap-1">
           <button
             onClick={() => setMode((m) => (m === 'or' ? 'and' : 'or'))}
             title={mode === 'or' ? '并集（任一标签）' : '交集（全部标签）'}
             className={`h-6 w-6 shrink-0 rounded text-xs font-medium transition-colors duration-300 ${
-              mode === 'or' ? 'border border-neutral-300 bg-white text-black' : 'border border-black bg-black text-white'
+              mode === 'or' ? 'border border-outline bg-white text-black' : 'border border-black bg-black text-white'
             }`}
           >
             {mode === 'or' ? '阳' : '阴'}
@@ -384,13 +432,13 @@ function PhotoSidebar({ placedIds }: { placedIds: Set<number> }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索标签"
-            className="h-6 min-w-0 flex-1 rounded border border-neutral-300 px-1.5 text-xs focus:border-blue-500 focus:outline-none"
+            className="h-6 min-w-0 flex-1 rounded border border-outline px-1.5 text-xs focus:border-blue-500 focus:outline-none"
           />
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {shown.length === 0 ? (
-          <p className="p-2 text-xs text-neutral-400">{edited.length === 0 ? '暂无已分类照片' : '无匹配照片'}</p>
+          <p className="p-2 text-xs text-content-subtle">{edited.length === 0 ? '暂无已分类照片' : '无匹配照片'}</p>
         ) : (
           <div className="grid grid-cols-3 gap-1.5">
             {shown.map((p) => (
@@ -620,9 +668,9 @@ function CanvasFlow({ onPlacedChange }: { onPlacedChange: (ids: Set<number>) => 
 
       {saveOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={cancelSave}>
-          <div className="w-[420px] rounded-lg bg-white p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
-            <h3 className="mb-2 text-base font-semibold text-neutral-800">保存到联想库</h3>
-            <p className="mb-3 text-sm text-neutral-600">为本次保存的画布命名：</p>
+          <div className="w-[420px] rounded-lg glass p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <h3 className="mb-2 text-base font-semibold text-content">保存到联想库</h3>
+            <p className="mb-3 text-sm text-content-muted">为本次保存的画布命名：</p>
             <input
               autoFocus
               value={saveName}
@@ -632,12 +680,12 @@ function CanvasFlow({ onPlacedChange }: { onPlacedChange: (ids: Set<number>) => 
                 if (e.key === 'Escape') cancelSave()
               }}
               placeholder="请输入名称（留空将使用默认名称）"
-              className="mb-4 w-full rounded border border-neutral-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="mb-4 w-full rounded border border-outline bg-canvas px-3 py-2 text-sm text-content placeholder:text-content-subtle focus:border-blue-500 focus:outline-none"
             />
             <div className="flex justify-end gap-2">
               <button
                 onClick={cancelSave}
-                className="rounded border border-neutral-300 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
+                className="rounded border border-outline px-4 py-2 text-sm text-content hover:bg-surface-hover"
               >
                 取消
               </button>
@@ -654,15 +702,15 @@ function CanvasFlow({ onPlacedChange }: { onPlacedChange: (ids: Set<number>) => 
 
       {clearOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={cancelClear}>
-          <div className="w-[420px] rounded-lg bg-white p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
-            <h3 className="mb-2 text-base font-semibold text-neutral-800">确认清理画布？</h3>
-            <p className="mb-4 text-sm text-neutral-600">
+          <div className="w-[420px] rounded-lg glass p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <h3 className="mb-2 text-base font-semibold text-content">确认清理画布？</h3>
+            <p className="mb-4 text-sm text-content-muted">
               此操作将清除画布上的所有元素、连线与文本，恢复为空白状态，且不可撤销。
             </p>
             <div className="flex justify-end gap-2">
               <button
                 onClick={cancelClear}
-                className="rounded border border-neutral-300 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
+                className="rounded border border-outline px-4 py-2 text-sm text-content hover:bg-surface-hover"
               >
                 取消
               </button>

@@ -1,6 +1,6 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron'
 import type { DatabaseSync } from 'node:sqlite'
-import { readdirSync, existsSync, statSync } from 'fs'
+import { readdirSync, existsSync, statSync, copyFileSync, unlinkSync, mkdirSync } from 'fs'
 import { extname, join, resolve, relative, isAbsolute } from 'path'
 import { CHANNELS } from '../shared/ipc'
 import type { MapEdgePatch, MapNodePatch, MindCanvasSnapshot } from '../shared/types'
@@ -8,7 +8,7 @@ import * as photoRepo from './photoRepo'
 import * as mapRepo from './mapRepo'
 import * as mindLibraryRepo from './mindLibraryRepo'
 import { readExif } from './exif'
-import { getSaveDir, persistSaveDir } from './settings'
+import { getSaveDir, persistSaveDir, getBackgroundImagePath, getBackgroundOpacity, setBackgroundImage, setBackgroundOpacity } from './settings'
 
 const SUPPORTED = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'])
 const MAX_IMPORT = 10
@@ -73,7 +73,7 @@ function sanitizeSnapshot(raw: unknown): MindCanvasSnapshot {
   return { nodes, edges }
 }
 
-export function registerIpcHandlers(deps: { db: DatabaseSync; thumbDir: string; kushotDir: string }): void {
+export function registerIpcHandlers(deps: { db: DatabaseSync; thumbDir: string; kushotDir: string; backgroundDir: string }): void {
   ipcMain.handle(CHANNELS.pickImages, async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     const result = await dialog.showOpenDialog(win!, {
@@ -221,5 +221,54 @@ export function registerIpcHandlers(deps: { db: DatabaseSync; thumbDir: string; 
   ipcMain.handle(CHANNELS.deleteMindLibrary, async (_e, ids: unknown) => {
     const list = Array.isArray(ids) ? ids.filter((x): x is number => typeof x === 'number') : []
     await mindLibraryRepo.deleteLibrary(deps.db, list, deps.kushotDir)
+  })
+
+  // —— 自定义背景图 ——
+  ipcMain.handle(CHANNELS.getBackground, () => ({
+    image: getBackgroundImagePath(),
+    opacity: getBackgroundOpacity()
+  }))
+
+  ipcMain.handle(CHANNELS.pickBackground, async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const result = await dialog.showOpenDialog(win!, {
+      title: '选择背景图片',
+      properties: ['openFile'],
+      filters: [{ name: '图片', extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'] }]
+    })
+    return result.canceled || !result.filePaths.length ? null : result.filePaths[0]
+  })
+
+  ipcMain.handle(CHANNELS.applyBackground, (_e, path: unknown) => {
+    if (typeof path === 'string' && path.trim()) {
+      try {
+        const ext = extname(path).toLowerCase() || '.png'
+        mkdirSync(deps.backgroundDir, { recursive: true })
+        for (const f of readdirSync(deps.backgroundDir)) {
+          if (f.startsWith('custom-bg')) unlinkSync(join(deps.backgroundDir, f))
+        }
+        copyFileSync(path, join(deps.backgroundDir, `custom-bg${ext}`))
+        setBackgroundImage(join(deps.backgroundDir, `custom-bg${ext}`))
+      } catch {
+        // 复制失败则保留原背景，避免丢失
+      }
+    }
+    return { image: getBackgroundImagePath(), opacity: getBackgroundOpacity() }
+  })
+
+  ipcMain.handle(CHANNELS.setBackgroundOpacity, (_e, opacity: unknown) => {
+    setBackgroundOpacity(typeof opacity === 'number' ? opacity : 1)
+  })
+
+  ipcMain.handle(CHANNELS.clearBackground, () => {
+    const old = getBackgroundImagePath()
+    if (old) {
+      try {
+        unlinkSync(old)
+      } catch {
+        /* 忽略 */
+      }
+    }
+    setBackgroundImage(null)
   })
 }
