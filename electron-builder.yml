@@ -14,11 +14,8 @@ win:
   artifactName: photomind v0.2.1.exe
 mac:
   target:
-    - target: dmg
-      arch:
-        - x64
-        - arm64
-  artifactName: mac alice v0.2.1.dmg
+    - dmg
+  artifactName: mac alice v0.2.1-${arch}.dmg
   category: public.app-category.photography
   identity: null
 nsis:
